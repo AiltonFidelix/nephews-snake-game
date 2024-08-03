@@ -3,6 +3,7 @@
 
 int main(int argc, char const *argv[])
 {
-    iniciar_jogo();
+    init_game();
+
     return 0;
 }

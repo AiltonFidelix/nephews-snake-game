@@ -1,6 +1,6 @@
 #include "snake.h"
 
-void iniciar_jogo(void)
+void init_game(void)
 {
     WINDOW *win = initscr();
     
@@ -10,7 +10,7 @@ void iniciar_jogo(void)
     int foodX = 0;
     int foodY = 0;
 
-    posicionar_food(&foodX, &foodY);
+    food_position(&foodX, &foodY);
 
     int dirX = 1;
     int dirY = 0;
@@ -20,14 +20,21 @@ void iniciar_jogo(void)
     bool rodando = true;
     bool gameover = false;
 
-    int snake[2][100];
+    int **snake = (int**)malloc(sizeof(int*) * SNAKE_ROWS);
 
-    for (int i = 0; i < MAX_SCORE; ++i)
+    for (int i = 0; i < SNAKE_ROWS; ++i)
     {
-        snake[0][i] = POS_X_MIN;
-        snake[1][i] = POS_Y_MIN;
+        snake[i] = (int*)malloc(sizeof(int));
+
+        if (snake[i] == NULL)
+        {
+            exit(EXIT_FAILURE);
+        }
     }
 
+    snake[0][0] = POS_X_MIN;
+    snake[1][0] = POS_Y_MIN;
+ 
     while (rodando) 
     {
         int pressed = wgetch(win);
@@ -90,7 +97,7 @@ void iniciar_jogo(void)
                 }
             }
 
-            for (int i = 0; i < pontos +1; ++i)
+            for (int i = 0; i < (pontos + 1); ++i)
             {
                 mvaddstr(snake[1][i], snake[0][i], "*");
             }
@@ -102,12 +109,12 @@ void iniciar_jogo(void)
             game_over();
         }
 
-        escreve_titulo(&pontos, gameover);
-        desenhar_caixa();
+        draw_header(&pontos, gameover);
+        draw_field();
 
         if (foodX == snake[0][0] && foodY == snake[1][0]) 
         {
-            posicionar_food(&foodX, &foodY);
+            food_position(&foodX, &foodY);
             pontos++;
 
             if (pontos == MAX_SCORE)
@@ -116,36 +123,53 @@ void iniciar_jogo(void)
             }
             else
             {
-                snake[0][pontos] = snake[0][0] + dirX;
-                snake[1][pontos] = snake[1][0] + dirY;
+                for (int i = 0; i < SNAKE_ROWS; ++i)
+                {
+                    snake[i] = (int*)realloc(snake[i], sizeof(int*) * pontos);
+
+                    if (snake[i] != NULL)
+                    {
+                        snake[i][pontos] = snake[i][0] + dirX;
+                    }
+
+                }
             }
         }
         
         usleep(screen_delay);
     }
 
+    // Free memory
+    for (int i = 0; i < SNAKE_ROWS; i++) 
+    {
+        free(snake[i]);
+    }
+    
+    free(snake);
+
+    erase();
     endwin();
 }
 
-void escreve_titulo(int *pontos, bool gameover)
+void draw_header(int *score, bool gameover)
 {
-    mvaddstr(0, 0, "Jogo da Cobrinha, pressione DELETE para sair.");
+    mvaddstr(0, 0, "Snake Game, press DEL to quit.");
 
-    char frasePontos[20];
-    sprintf(frasePontos, "Pontos: %d ", *pontos);
+    char score_phrase[20];
+    sprintf(score_phrase, "Score: %d ", *score);
 
     if (gameover)
     {
-        mvaddstr(1, 0, "Pressione ENTER para reiniciar.");
+        mvaddstr(1, 0, "Press BACKSPACE to restart.");
     }
     else
     {
-        mvaddstr(1, 0, frasePontos);
+        mvaddstr(1, 0, score_phrase);
     }
 
 }
 
-void desenhar_caixa(void)
+void draw_field(void)
 {
     for (int i = FIELD_X_MIN; i < FIELD_X_MAX; ++i)
     {
@@ -186,16 +210,16 @@ void vai_para_cima(int *x, int *y)
 
 void game_over(void)
 {
-    char texto[] = "GAME OVER!!!";
+    char text[] = "GAME OVER!!!";
     int y = FIELD_Y_MAX / 2;
-    int x = (FIELD_X_MAX / 2) - (strlen(texto) / 2);
-    mvaddstr(y, x, texto);
+    int x = (FIELD_X_MAX / 2) - (strlen(text) / 2);
+    mvaddstr(y, x, text);
 }
 
-void posicionar_food(int *x, int *y)
+void food_position(int *x, int *y)
 {
-    int foodX = gerar_numero(POS_X_MAX);
-    int foodY = gerar_numero(POS_Y_MAX);
+    int foodX = get_random(POS_X_MAX);
+    int foodY = get_random(POS_Y_MAX);
 
     if (foodX < POS_X_MIN)
     {
@@ -211,9 +235,8 @@ void posicionar_food(int *x, int *y)
     *y = foodY;
 }
 
-int gerar_numero(int max)
+int get_random(int max)
 {
-    
     int numero = rand() % max;
 
     return numero;
